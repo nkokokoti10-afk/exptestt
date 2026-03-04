@@ -5,7 +5,7 @@ import { CheckCircle, TrendingUp, Users, Star, Filter, Zap, Award, X } from 'luc
 import { PaymentModal } from '../components/PaymentModal';
 
 export function SignalsPage() {
-  const { signals, executeTrade, account, purchasedSignals, purchaseSignal, user } = useStore();
+  const { signals, executeTrade, account, purchasedSignals, purchaseSignal, user, signalTemplates } = useStore();
   const [activeFilter, setActiveFilter] = useState('All');
   const [paymentModal, setPaymentModal] = useState({
     isOpen: false,
@@ -56,6 +56,25 @@ export function SignalsPage() {
       monthlyAccuracy: 85.3
     }
   ];
+
+  // Convert signal templates to trader format
+  const customTraders = signalTemplates.map((template, idx) => ({
+    id: template.id,
+    name: template.providerName,
+    winRate: template.winRate,
+    return: template.avgReturn,
+    followers: template.trades,
+    avatar: ['bg-cyan-500', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500'][idx % 4],
+    verified: true,
+    totalSignals: template.trades,
+    monthlyAccuracy: template.winRate,
+    cost: template.cost,
+    description: template.description,
+    isCustom: true
+  }));
+
+  // Combine hardcoded and custom traders
+  const allTraders = [...traders, ...customTraders];
 
   const handleBuySignal = (signal: any, trader: any, price: number) => {
     setPaymentModal({
@@ -144,8 +163,8 @@ export function SignalsPage() {
             <span className="text-xs text-[#8b949e] uppercase">Top Trader</span>
             <Star className="h-4 w-4 text-yellow-500" />
           </div>
-          <span className="block text-lg font-bold text-white">CryptoKing</span>
-          <span className="text-xs text-yellow-500">92% accuracy</span>
+          <span className="block text-lg font-bold text-white">{allTraders.reduce((a, b) => (a.winRate > b.winRate ? a : b)).name}</span>
+          <span className="text-xs text-yellow-500">{allTraders.reduce((a, b) => (a.winRate > b.winRate ? a : b)).winRate}% accuracy</span>
         </div>
       </div>
 
@@ -279,12 +298,68 @@ export function SignalsPage() {
         </div>
       )}
 
+      {/* Custom Traders Section */}
+      {customTraders.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-white">Custom Signal Providers</h3>
+            <span className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold">ADMIN CREATED</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {customTraders.map((trader) => (
+              <div
+                key={trader.id}
+                className="bg-[#161b22] border border-cyan-500/30 rounded-lg overflow-hidden hover:border-cyan-500/60 transition-all group hover:shadow-lg hover:shadow-cyan-500/10"
+              >
+                <div className="h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-full ${trader.avatar} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                        {trader.name[0]}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{trader.name}</span>
+                          <CheckCircle className="h-4 w-4 text-cyan-400" />
+                        </div>
+                        <p className="text-xs text-[#8b949e]">{trader.totalSignals} signals provided</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-[#8b949e]">{trader.description}</p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
+                      <span className="text-xs text-[#8b949e]">Win Rate</span>
+                      <span className="block text-lg font-bold text-[#26a69a]">{trader.winRate}%</span>
+                    </div>
+                    <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
+                      <span className="text-xs text-[#8b949e]">Avg Return</span>
+                      <span className="block text-lg font-bold text-[#26a69a]">+{trader.return}%</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleBuySignal({} as any, trader, trader.cost || 0)}
+                    className="w-full py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-bold rounded-lg transition-all"
+                  >
+                    {trader.cost !== undefined && trader.cost > 0 ? `Subscribe - $${trader.cost.toFixed(2)}` : 'Subscribe for Free'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Signals Grid */}
       <div>
         <h3 className="text-lg font-bold text-white mb-6">Available Signals ({filteredSignals.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSignals.map((signal, idx) => {
-            const trader = traders[idx % traders.length];
+            const trader = allTraders[idx % allTraders.length];
             const price = idx % 3 === 0 ? 'FREE' : `$${(Math.random() * 20 + 9).toFixed(2)}`;
             const priceValue = price === 'FREE' ? 0 : parseFloat(price.substring(1));
 

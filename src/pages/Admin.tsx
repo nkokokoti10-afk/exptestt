@@ -10,9 +10,14 @@ import {
   Send,
   Settings,
   CheckCircle,
-  Zap
+  Zap,
+  Bot,
+  Trash2,
+  Edit2
 } from 'lucide-react';
 import { useStore } from '../lib/store';
+import { BotManagementTabComponent } from '../components/BotManagementTab';
+import { SignalManagementTabComponent } from '../components/SignalManagementTab';
 
 const AVAILABLE_PAGES = ['dashboard', 'trade', 'wallet', 'signals', 'bot', 'copy-trading', 'funded-accounts', 'kyc'];
 const WALLET_TYPES = ['DEPOSIT', 'PURCHASE'];
@@ -47,7 +52,15 @@ export function AdminPage() {
     getUserTransactions,
     adminCreateBot,
     adminCreateSignal,
-    adminCreateCopyTrade
+    adminCreateCopyTrade,
+    botTemplates,
+    addBotTemplate,
+    editBotTemplate,
+    deleteBotTemplate,
+    signalTemplates,
+    addSignalTemplate,
+    editSignalTemplate,
+    deleteSignalTemplate
   } = useStore();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -82,6 +95,8 @@ export function AdminPage() {
     { id: 'approvals', label: 'Approvals', icon: CheckCircle },
     { id: 'funded', label: 'Funded Accounts', icon: Zap },
     { id: 'transactions', label: 'Transactions', icon: DollarSign },
+    { id: 'bot-management', label: 'Bot Management', icon: Bot },
+    { id: 'signal-management', label: 'Signal Management', icon: Zap },
     { id: 'manual', label: 'Manual Creation', icon: Plus },
   ];
 
@@ -1055,6 +1070,24 @@ export function AdminPage() {
         return <FundedAccountsTab />;
       case 'transactions':
         return <TransactionTab />;
+      case 'bot-management':
+        return (
+          <BotManagementTabComponent
+            botTemplates={botTemplates}
+            addBotTemplate={addBotTemplate}
+            editBotTemplate={editBotTemplate}
+            deleteBotTemplate={deleteBotTemplate}
+          />
+        );
+      case 'signal-management':
+        return (
+          <SignalManagementTabComponent
+            signalTemplates={signalTemplates}
+            addSignalTemplate={addSignalTemplate}
+            editSignalTemplate={editSignalTemplate}
+            deleteSignalTemplate={deleteSignalTemplate}
+          />
+        );
       case 'manual':
         return <ManualTab />;
       default:

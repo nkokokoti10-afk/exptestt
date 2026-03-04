@@ -27,7 +27,8 @@ export function BotPage() {
     allocateBotCapital,
     pauseBot,
     resumeBot,
-    user 
+    user,
+    botTemplates
   } = useStore();
   const [paymentModal, setPaymentModal] = useState({
     isOpen: false,
@@ -42,6 +43,7 @@ export function BotPage() {
 
   const bots = [
     {
+      id: 'scalper-pro',
       name: 'Scalper Pro',
       type: 'High Frequency',
       risk: 'High',
@@ -51,9 +53,11 @@ export function BotPage() {
       description: 'Fast-paced trading bot optimized for quick profits',
       trades: 324,
       winRate: 64,
-      maxDrawdown: 15
+      maxDrawdown: 15,
+      isTemplate: false
     },
     {
+      id: 'trend-hunter',
       name: 'Trend Hunter V2',
       type: 'Swing Trading',
       risk: 'Medium',
@@ -63,9 +67,11 @@ export function BotPage() {
       description: 'Captures medium-term market trends',
       trades: 156,
       winRate: 72,
-      maxDrawdown: 8
+      maxDrawdown: 8,
+      isTemplate: false
     },
     {
+      id: 'gold-rush',
       name: 'Gold Rush AI',
       type: 'Commodities',
       risk: 'Medium',
@@ -75,9 +81,11 @@ export function BotPage() {
       description: 'Specialized in precious metals trading',
       trades: 89,
       winRate: 68,
-      maxDrawdown: 12
+      maxDrawdown: 12,
+      isTemplate: false
     },
     {
+      id: 'smart-grid',
       name: 'Smart Grid',
       type: 'Arbitrage',
       risk: 'Low',
@@ -87,9 +95,11 @@ export function BotPage() {
       description: 'Safe arbitrage strategy with consistent returns',
       trades: 204,
       winRate: 85,
-      maxDrawdown: 3
+      maxDrawdown: 3,
+      isTemplate: false
     },
     {
+      id: 'neural-trader',
       name: 'Neural Trader',
       type: 'AI Prediction',
       risk: 'High',
@@ -99,9 +109,11 @@ export function BotPage() {
       description: 'Advanced AI-powered prediction engine',
       trades: 421,
       winRate: 71,
-      maxDrawdown: 18
+      maxDrawdown: 18,
+      isTemplate: false
     },
     {
+      id: 'crypto-momentum',
       name: 'Crypto Momentum',
       type: 'Crypto Only',
       risk: 'High',
@@ -111,9 +123,28 @@ export function BotPage() {
       description: 'Free trial - Specialized in cryptocurrency markets',
       trades: 267,
       winRate: 66,
-      maxDrawdown: 16
+      maxDrawdown: 16,
+      isTemplate: false
     }
   ];
+
+  // Combine hardcoded bots with admin-created templates
+  const templateBots = botTemplates.map(template => ({
+    id: template.id,
+    name: template.name,
+    type: template.type,
+    risk: template.risk,
+    return: template.performance,
+    price: template.price,
+    color: 'from-cyan-500 to-blue-500',
+    description: template.description,
+    trades: template.trades,
+    winRate: template.winRate,
+    maxDrawdown: template.maxDrawdown,
+    isTemplate: true
+  }));
+
+  const allBots = [...bots, ...templateBots];
 
   const handleBuyBot = (bot: any) => {
     setPaymentModal({
@@ -173,7 +204,7 @@ export function BotPage() {
             <span className="text-xs text-[#8b949e] uppercase">Available Bots</span>
             <Bot className="h-4 w-4 text-[#2962ff]" />
           </div>
-          <span className="block text-2xl font-bold text-white">6</span>
+          <span className="block text-2xl font-bold text-white">{allBots.length}</span>
           <span className="text-xs text-[#8b949e]">Premium & Free</span>
         </div>
         <div className="bg-[#161b22] border border-[#21262d] rounded-lg p-4 space-y-2">
@@ -364,9 +395,9 @@ export function BotPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bots.map((bot) => (
+          {allBots.map((bot) => (
             <div
-              key={bot.name}
+              key={bot.id}
               className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden hover:border-[#2962ff] transition-all group hover:shadow-lg hover:shadow-blue-500/10"
             >
               {/* Top Gradient Bar */}
@@ -377,9 +408,16 @@ export function BotPage() {
                 {/* Header */}
                 <div className="flex justify-between items-start gap-4">
                   <div>
-                    <h4 className="text-xl font-bold text-white group-hover:text-[#2962ff] transition-colors mb-1">
-                      {bot.name}
-                    </h4>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="text-xl font-bold text-white group-hover:text-[#2962ff] transition-colors">
+                        {bot.name}
+                      </h4>
+                      {bot.isTemplate && (
+                        <span className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded font-bold">
+                          CUSTOM
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-[#8b949e]">{bot.description}</p>
                   </div>
                   <span
