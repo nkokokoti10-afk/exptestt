@@ -9,6 +9,11 @@ export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState('');
+  const [notRobot, setNotRobot] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -16,9 +21,46 @@ export function AuthPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
+    if (!isLogin) {
+      // Signup validation
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        setIsLoading(false);
+        return;
+      }
+      if (!fullName.trim()) {
+        setError('Full name is required');
+        setIsLoading(false);
+        return;
+      }
+      if (!phone.trim()) {
+        setError('Phone number is required');
+        setIsLoading(false);
+        return;
+      }
+      if (!country) {
+        setError('Country is required');
+        setIsLoading(false);
+        return;
+      }
+      if (!notRobot) {
+        setError('Please confirm you are not a robot');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     // Simulate network delay
     setTimeout(() => {
-      const result = login(email, password);
+      const signupData = !isLogin ? {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        country,
+        password
+      } : undefined;
+
+      const result = login(email, password, signupData);
       if (!result.success) {
         setError(result.error || 'Invalid email or password');
       }
@@ -50,66 +92,159 @@ export function AuthPage() {
                   <p className="text-red-400 text-sm">{error}</p>
                 </div>
               )}
+
+              {!isLogin && (
+                <Input
+                  label="Full Name"
+                  type="text"
+                  placeholder="John Doe"
+                  required={!isLogin}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              )}
+
               <Input
                 label="Email Address"
                 type="email"
                 placeholder="trader@example.com"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)} />
+                onChange={(e) => setEmail(e.target.value)}
+              />
 
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)} />
+              {!isLogin && (
+                <>
+                  <Input
+                    label="Phone Number"
+                    type="tel"
+                    placeholder="+1 (555) 123-4567"
+                    required={!isLogin}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
 
-
-              {!isLogin &&
-              <>
                   <Select
-                  label="Country"
-                  options={[
-                  {
-                    value: 'UK',
-                    label: 'United Kingdom'
-                  },
-                  {
-                    value: 'US',
-                    label: 'United States'
-                  },
-                  {
-                    value: 'DE',
-                    label: 'Germany'
-                  },
-                  {
-                    value: 'JP',
-                    label: 'Japan'
-                  }]
-                  } />
+                    label="Country"
+                    required={!isLogin}
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    options={[
+                      { value: '', label: 'Select Country' },
+                      { value: 'US', label: 'United States' },
+                      { value: 'UK', label: 'United Kingdom' },
+                      { value: 'CA', label: 'Canada' },
+                      { value: 'DE', label: 'Germany' },
+                      { value: 'FR', label: 'France' },
+                      { value: 'JP', label: 'Japan' },
+                      { value: 'AU', label: 'Australia' },
+                      { value: 'IN', label: 'India' },
+                      { value: 'BR', label: 'Brazil' },
+                      { value: 'MX', label: 'Mexico' },
+                      { value: 'IT', label: 'Italy' },
+                      { value: 'ES', label: 'Spain' },
+                      { value: 'NL', label: 'Netherlands' },
+                      { value: 'SE', label: 'Sweden' },
+                      { value: 'NO', label: 'Norway' },
+                      { value: 'DK', label: 'Denmark' },
+                      { value: 'FI', label: 'Finland' },
+                      { value: 'PL', label: 'Poland' },
+                      { value: 'CZ', label: 'Czech Republic' },
+                      { value: 'AT', label: 'Austria' },
+                      { value: 'CH', label: 'Switzerland' },
+                      { value: 'BE', label: 'Belgium' },
+                      { value: 'PT', label: 'Portugal' },
+                      { value: 'GR', label: 'Greece' },
+                      { value: 'HU', label: 'Hungary' },
+                      { value: 'TR', label: 'Turkey' },
+                      { value: 'RU', label: 'Russia' },
+                      { value: 'CN', label: 'China' },
+                      { value: 'KR', label: 'South Korea' },
+                      { value: 'SG', label: 'Singapore' },
+                      { value: 'MY', label: 'Malaysia' },
+                      { value: 'TH', label: 'Thailand' },
+                      { value: 'ID', label: 'Indonesia' },
+                      { value: 'PH', label: 'Philippines' },
+                      { value: 'VN', label: 'Vietnam' },
+                      { value: 'ZA', label: 'South Africa' },
+                      { value: 'EG', label: 'Egypt' },
+                      { value: 'NG', label: 'Nigeria' },
+                      { value: 'KE', label: 'Kenya' },
+                      { value: 'GH', label: 'Ghana' },
+                      { value: 'MA', label: 'Morocco' },
+                      { value: 'TN', label: 'Tunisia' },
+                      { value: 'AE', label: 'United Arab Emirates' },
+                      { value: 'SA', label: 'Saudi Arabia' },
+                      { value: 'IL', label: 'Israel' },
+                      { value: 'PK', label: 'Pakistan' },
+                      { value: 'BD', label: 'Bangladesh' },
+                      { value: 'LK', label: 'Sri Lanka' }
+                    ]}
+                  />
+
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="••••••••"
+                    required={!isLogin}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    placeholder="••••••••"
+                    required={!isLogin}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
 
                   <div className="flex items-center space-x-2">
                     <input
-                    type="checkbox"
-                    id="terms"
-                    required
-                    className="rounded border-gray-700 bg-gray-800" />
+                      type="checkbox"
+                      id="notRobot"
+                      required={!isLogin}
+                      checked={notRobot}
+                      onChange={(e) => setNotRobot(e.target.checked)}
+                      className="rounded border-gray-700 bg-gray-800"
+                    />
+                    <label htmlFor="notRobot" className="text-xs text-gray-400">
+                      I'm not a robot
+                    </label>
+                  </div>
 
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="terms"
+                      required={!isLogin}
+                      className="rounded border-gray-700 bg-gray-800"
+                    />
                     <label htmlFor="terms" className="text-xs text-gray-400">
                       I accept the Terms & Conditions
                     </label>
                   </div>
                 </>
-              }
+              )}
+
+              {isLogin && (
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              )}
 
               <Button
                 type="submit"
                 className="w-full"
                 size="lg"
-                isLoading={isLoading}>
-
+                isLoading={isLoading}
+              >
                 {isLogin ? 'Login to Dashboard' : 'Open Account'}
               </Button>
             </form>

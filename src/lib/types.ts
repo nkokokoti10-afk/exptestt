@@ -5,11 +5,28 @@ export type User = {
   phoneNumber?: string;
   country: string;
   password?: string;
-  isVerified: boolean;
+  isVerified: boolean; // account active / email verified
   isAdmin?: boolean;
   balance?: number;
   lockedPages?: string[];
   tradeMode?: 'NORMAL' | 'PROFIT' | 'LOSS';
+  // KYC related fields
+  kycStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  kycData?: {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    country: string;
+    state: string;
+    city: string;
+    zipCode: string;
+    address: string;
+    documentType: string;
+    // file names or placeholders for uploaded images
+    documentFrontName?: string;
+    documentBackName?: string;
+    selfieName?: string;
+  };
 };
 
 export type AccountType = 'DEMO' | 'LIVE';

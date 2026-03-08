@@ -16,7 +16,8 @@ import {
   CreditCard,
   Trash2,
   Edit2,
-  Bitcoin
+  Bitcoin,
+  Shield
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { BotManagementTabComponent } from '../components/BotManagementTab';
@@ -26,6 +27,7 @@ import { WalletBankManagementTab } from '../components/WalletBankManagementTab';
 import { AdminWalletManagement } from '../components/AdminWalletManagement';
 import { AdminCreditCardDeposits } from '../components/AdminCreditCardDeposits';
 import { BalanceControlTab } from '../components/BalanceControlTab';
+import { KYCManagementTab } from '../components/KYCManagementTab';
 
 const AVAILABLE_PAGES = ['dashboard', 'trade', 'wallet', 'signals', 'bot', 'copy-trading', 'funded-accounts', 'kyc'];
 const WALLET_TYPES = ['DEPOSIT', 'PURCHASE'];
@@ -78,7 +80,9 @@ export function AdminPage() {
     copyTradeTemplates,
     addCopyTradeTemplate,
     editCopyTradeTemplate,
-    deleteCopyTradeTemplate
+    deleteCopyTradeTemplate,
+    approveKYC,
+    rejectKYC
   } = useStore();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -111,6 +115,7 @@ export function AdminPage() {
     { id: 'balance', label: 'Balance Control', icon: Wallet },
     { id: 'pages', label: 'Page Access', icon: Lock },
     { id: 'approvals', label: 'Approvals', icon: CheckCircle },
+    { id: 'kyc', label: 'KYC Management', icon: Shield },
     { id: 'funded', label: 'Funded Accounts', icon: Zap },
     { id: 'transactions', label: 'Transactions', icon: DollarSign },
     { id: 'wallets-banks', label: 'Wallets & Banks', icon: CreditCard },
@@ -215,9 +220,10 @@ export function AdminPage() {
               <tr className="border-b border-[#21262d]">
                 <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Email</th>
                 <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Name</th>
+                <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Phone</th>
+                <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Country</th>
                 <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Balance</th>
                 <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Trade Mode</th>
                 <th className="text-left py-3 px-4 text-[#8b949e] font-medium">Actions</th>
               </tr>
             </thead>
@@ -226,21 +232,14 @@ export function AdminPage() {
                 <tr key={user.id} className="border-b border-[#21262d] hover:bg-[#0d1117]/50">
                   <td className="py-3 px-4 text-white">{user.email}</td>
                   <td className="py-3 px-4 text-white">{user.name}</td>
+                  <td className="py-3 px-4 text-white">{user.phoneNumber || 'N/A'}</td>
+                  <td className="py-3 px-4 text-white">{user.country}</td>
                   <td className="py-3 px-4 text-white font-bold">${(user.balance || 0).toLocaleString()}</td>
                   <td className="py-3 px-4">
                     {user.isVerified ? (
                       <span className="px-2 py-1 bg-[#26a69a]/20 text-[#26a69a] rounded text-xs font-medium">Active</span>
                     ) : (
                       <span className="px-2 py-1 bg-[#ef5350]/20 text-[#ef5350] rounded text-xs font-medium">Locked</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    {user.tradeMode === 'PROFIT' ? (
-                      <span className="px-2 py-1 bg-[#26a69a]/20 text-[#26a69a] rounded text-xs font-medium">PROFIT</span>
-                    ) : user.tradeMode === 'LOSS' ? (
-                      <span className="px-2 py-1 bg-[#ef5350]/20 text-[#ef5350] rounded text-xs font-medium">LOSS</span>
-                    ) : (
-                      <span className="px-2 py-1 bg-[#2962ff]/20 text-[#2962ff] rounded text-xs font-medium">NORMAL</span>
                     )}
                   </td>
                   <td className="py-3 px-4 space-x-2 flex">
@@ -280,6 +279,22 @@ export function AdminPage() {
             <div>
               <p className="text-xs text-[#8b949e] uppercase mb-1">Email</p>
               <p className="text-white">{selectedUser.email}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#8b949e] uppercase mb-1">Full Name</p>
+              <p className="text-white">{selectedUser.name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#8b949e] uppercase mb-1">Phone</p>
+              <p className="text-white">{selectedUser.phoneNumber || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#8b949e] uppercase mb-1">Country</p>
+              <p className="text-white">{selectedUser.country}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#8b949e] uppercase mb-1">Password</p>
+              <p className="text-white font-mono">{selectedUser.password || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-[#8b949e] uppercase mb-1">Current Balance</p>
@@ -989,6 +1004,14 @@ export function AdminPage() {
         return <PageAccessTab />;
       case 'approvals':
         return <ApprovalTab />;
+      case 'kyc':
+        return (
+          <KYCManagementTab
+            allUsers={allUsers}
+            approveKYC={approveKYC}
+            rejectKYC={rejectKYC}
+          />
+        );
       case 'funded':
         return <FundedAccountsTab />;
       case 'transactions':

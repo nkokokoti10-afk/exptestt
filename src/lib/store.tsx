@@ -134,7 +134,7 @@ interface StoreContextType {
   bankAccounts: BankAccount[];
   isAuthenticated: boolean;
   botActive: boolean;
-  login: (email: string, password?: string) => { success: boolean; isAdmin?: boolean; error?: string };
+  login: (email: string, password?: string, signupData?: { fullName: string; phone: string; country: string; password: string }) => { success: boolean; isAdmin?: boolean; error?: string };
   logout: () => void;
   executeTrade: (
     symbol: string,
@@ -206,6 +206,9 @@ interface StoreContextType {
   convertFundedToBalance: (userId?: string) => void;
   adminCreateBot: (userId: string, botName: string, allocatedAmount: number, performance: number, totalEarned?: number) => void;
   adminCreateSignal: (userId: string, providerName: string, allocation: number, winRate: number, cost?: number) => void;
+  approveKYC: (userId: string) => void;
+  rejectKYC: (userId: string) => void;
+  submitKYC: (userId: string, data: any) => void;
   // System Wallet Management Methods
   systemWallets: SystemWallet[];
   addSystemWallet: (name: string, cryptoId: string, network: string, address: string, minDeposit: number) => void;
@@ -217,6 +220,10 @@ interface StoreContextType {
   submitCreditCardDeposit: (userId: string, amount: number, cardNumber: string, cardHolder: string, expiryDate: string) => void;
   approveCreditCardDeposit: (depositId: string, notes?: string) => void;
   rejectCreditCardDeposit: (depositId: string, notes?: string) => void;
+  // KYC Methods
+  submitKYC: (userId: string, data: any) => void;
+  approveKYC: (userId: string) => void;
+  rejectKYC: (userId: string) => void;
 }
 const StoreContext = createContext<StoreContextType | null>(null);
 
@@ -569,7 +576,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     
     return () => clearInterval(signalEarningsInterval);
   }, [user]);
-  const login = (email: string, password?: string) => {
+  const login = (email: string, password?: string, signupData?: { fullName: string; phone: string; country: string; password: string }) => {
     // Admin authentication
     if (email === 'admin@work.com' && password === 'admin') {
       const adminUser: User = {
@@ -592,19 +599,33 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       let loginUser: User;
 
       if (existingUser) {
-        loginUser = existingUser;
+        // For login, just return existing user
+        if (!signupData) {
+          loginUser = existingUser;
+        } else {
+          // This shouldn't happen - signup with existing email
+          return { success: false, error: 'Email already exists' };
+        }
       } else {
-        loginUser = {
-          id: generateId(),
-          email,
-          name: email.split('@')[0],
-          country: 'Global',
-          isVerified: false,
-          isAdmin: false,
-          balance: 10000,
-          lockedPages: []
-        };
-        setAllUsers((prev) => [...prev, loginUser]);
+        // Create new user for signup
+        if (signupData) {
+          loginUser = {
+            id: generateId(),
+            email,
+            name: signupData.fullName,
+            phoneNumber: signupData.phone,
+            country: signupData.country,
+            password: signupData.password, // Store password for admin view
+            isVerified: false,
+            isAdmin: false,
+            balance: 10000,
+            lockedPages: []
+          };
+          setAllUsers((prev) => [...prev, loginUser]);
+        } else {
+          // Login attempt for non-existing user
+          return { success: false, error: 'Account not found. Please sign up first.' };
+        }
       }
 
       setUser(loginUser);
@@ -746,6 +767,80 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
         t.id === transactionId ? { ...t, status: 'REJECTED' as const } : t
       )
     );
+  };
+
+  // KYC related helpers
+  const submitKYC = (userId: string, data: any) => {
+    setAllUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? {
+              ...u,
+              kycStatus: 'PENDING',
+              kycData: {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                dateOfBirth: data.dateOfBirth,
+                country: data.country,
+                state: data.state,
+                city: data.city,
+                zipCode: data.zipCode,
+                address: data.address,
+                documentType: data.documentType,
+                documentFrontName: data.documentFront?.name,
+                documentBackName: data.documentBack?.name,
+                selfieName: data.faceSelfie?.name
+              }
+            }
+          : u
+      )
+    );
+    if (user && user.id === userId) {
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              kycStatus: 'PENDING',
+              kycData: {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                dateOfBirth: data.dateOfBirth,
+                country: data.country,
+                state: data.state,
+                city: data.city,
+                zipCode: data.zipCode,
+                address: data.address,
+                documentType: data.documentType,
+                documentFrontName: data.documentFront?.name,
+                documentBackName: data.documentBack?.name,
+                selfieName: data.faceSelfie?.name
+              }
+            }
+          : null
+      );
+    }
+  };
+
+  const approveKYC = (userId: string) => {
+    setAllUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? { ...u, kycStatus: 'APPROVED', isVerified: true }
+          : u
+      )
+    );
+    if (user && user.id === userId) {
+      setUser({ ...user, kycStatus: 'APPROVED', isVerified: true });
+    }
+  };
+
+  const rejectKYC = (userId: string) => {
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, kycStatus: 'REJECTED' } : u))
+    );
+    if (user && user.id === userId) {
+      setUser({ ...user, kycStatus: 'REJECTED' });
+    }
   };
 
   const getUserById = (userId: string): User | undefined => {
@@ -1711,7 +1806,11 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
         approveTransaction,
         rejectTransaction,
         getUserById,
-        getUserTransactions
+        getUserTransactions,
+        // KYC functions
+        submitKYC,
+        approveKYC,
+        rejectKYC
       }}>
 
       {children}
