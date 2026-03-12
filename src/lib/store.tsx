@@ -564,7 +564,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     return () => clearInterval(botInterval);
   }, [botActive, user, assets]);
 
-  // Bot Earnings Automation - Every 30 seconds with clear win/loss logic
+  // Bot Earnings Automation - Every 3 seconds with performance-based calculation
   useEffect(() => {
     const botEarningsInterval = setInterval(() => {
       setPurchasedBots((prev) =>
@@ -577,20 +577,44 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           // Check if bot duration has expired
           if (bot.endDate && now >= bot.endDate) {
             // Auto-close bot - duration expired
+            // Refund allocated amount + total earnings to user
+            const totalRefund = bot.allocatedAmount + bot.totalEarned;
+            
+            setAllUsers((prevUsers) =>
+              prevUsers.map((u) =>
+                u.id === bot.userId
+                  ? { ...u, balance: (u.balance || 0) + totalRefund }
+                  : u
+              )
+            );
+            
+            // Update current user's balance if they're logged in
+            if (user && user.id === bot.userId) {
+              const newBal = (user.balance || 0) + totalRefund;
+              setUser({ ...user, balance: newBal });
+              setAccount((prev) => ({ ...prev, balance: newBal }));
+            }
+            
+            console.log(`✅ Bot CLOSED: "${bot.botName}" refunded $${totalRefund.toFixed(2)} (Alloc: $${bot.allocatedAmount.toFixed(2)} + Earnings: $${bot.totalEarned.toFixed(2)})`);
+            
             return {
               ...bot,
               status: 'CLOSED'
             };
           }
           
-          // Calculate earnings based on daily return spread over 30-second intervals
-          // dailyReturn: 5-15 (representing 5%-15% daily return)
-          // There are 2880 intervals of 30 seconds in 24 hours (24 * 60 * 2)
-          const dailyReturn = bot.dailyReturn || 10;
-          const dailyReturnPercent = dailyReturn / 100; // Convert to decimal (e.g., 10 -> 0.1)
+          // Calculate earnings based on performance spread over 3-second intervals
+          // performance: bot's win rate (e.g., 64%)
+          // Calculate total earning potential: allocation * (performance / 100)
+          const performancePercent = (bot.performance || bot.dailyReturn || 10) / 100;
+          const totalEarningPotential = bot.allocatedAmount * performancePercent;
           
-          // Per 30-second interval: allocatedAmount * (dailyReturn% / 2880)
-          const baseEarning = bot.allocatedAmount * (dailyReturnPercent / 2880);
+          // Calculate total intervals based on actual duration (endDate - startedAt)
+          const durationMs = bot.endDate && bot.startedAt ? (bot.endDate - bot.startedAt) : 24 * 60 * 60 * 1000;
+          const totalIntervals = Math.max(1, durationMs / 3000); // How many 3-second intervals
+          
+          // Per 3-second interval: totalEarningPotential / totalIntervals
+          const baseEarning = totalEarningPotential / totalIntervals;
           
           // Apply win/loss outcome
           let profitOrLoss: number;
@@ -598,46 +622,19 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             // WIN: Full earning
             profitOrLoss = baseEarning;
           } else if (bot.outcome === 'lose') {
-            // LOSE: 50% loss from base earning
-            profitOrLoss = -baseEarning * 0.5;
+            // LOSE: No earning (break even)
+            profitOrLoss = 0;
           } else {
-            // RANDOM: 70% chance of win, 30% chance of loss
-            profitOrLoss = Math.random() > 0.3 ? baseEarning : -baseEarning * 0.5;
+            // RANDOM: 70% chance of win, 30% chance of no earning
+            profitOrLoss = Math.random() > 0.3 ? baseEarning : 0;
           }
           
           // Update totals
-          const newTotalEarned = bot.totalEarned + Math.max(0, profitOrLoss);
-          const newTotalLost = bot.totalLost + Math.max(0, -profitOrLoss);
+          const newTotalEarned = bot.totalEarned + profitOrLoss;
+          const newTotalLost = bot.totalLost; // No losses in this model
           
           // Check drawdown limit
-          const currentValue = bot.allocatedAmount + newTotalEarned - newTotalLost;
-          const drawdownPercent = ((currentValue - bot.allocatedAmount) / bot.allocatedAmount) * 100;
-          
-          if (bot.maxDrawdown && drawdownPercent < -bot.maxDrawdown) {
-            // Drawdown exceeded - stop bot and refund
-            setAllUsers((prevUsers) =>
-              prevUsers.map((u) =>
-                u.id === bot.userId
-                  ? { ...u, balance: (u.balance || 0) + currentValue }
-                  : u
-              )
-            );
-            
-            if (user && user.id === bot.userId) {
-              const newBal = (user.balance || 0) + currentValue;
-              setUser({ ...user, balance: newBal });
-              setAccount((prev) => ({ ...prev, balance: newBal }));
-            }
-            
-            return {
-              ...bot,
-              status: 'CLOSED',
-              totalEarned: newTotalEarned,
-              totalLost: newTotalLost,
-              allocatedAmount: currentValue,
-              endDate: Date.now()
-            };
-          }
+          const currentValue = bot.allocatedAmount + newTotalEarned;
           
           // Update user balance in allUsers
           setAllUsers((prevUsers) =>
@@ -659,12 +656,12 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           return {
             ...bot,
             totalEarned: newTotalEarned,
-            totalLost: newTotalLost,
-            allocatedAmount: bot.allocatedAmount + profitOrLoss // Running total with compounded earnings
+            totalLost: newTotalLost
+            // DO NOT update allocatedAmount - keep it as the original allocation
           };
         })
       );
-    }, 30000); // Every 30 seconds
+    }, 3000); // Every 3 seconds
     
     return () => clearInterval(botEarningsInterval);
   }, [user]);
@@ -698,6 +695,8 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
               setUser({ ...user, balance: newBal });
               setAccount((prev) => ({ ...prev, balance: newBal }));
             }
+            
+            console.log(`✅ Signal CLOSED: "${signal.providerName}" refunded $${finalRefund.toFixed(2)} (Alloc: $${signal.allocation.toFixed(2)} + Earnings: $${signal.earnings.toFixed(2)})`);
             
             return {
               ...signal,
@@ -1054,7 +1053,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       status: 'PENDING_APPROVAL',
       purchasedAt: Date.now(),
       performance,
-      dailyReturn: Math.random() * (15 - 5) + 5 // 5-15% daily
+      dailyReturn: performance // Use the bot's actual performance as earning rate
     };
     setPurchasedBots((prev) => [...prev, newBot]);
     
@@ -1235,6 +1234,13 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       alert('❌ Signal must have capital allocated before activation. User must allocate funds first.');
       return;
     }
+
+    // Check if user has sufficient balance (should be deducted already, but verify)
+    const targetUser = allUsers.find(u => u.id === signal.userId);
+    if (!targetUser || (targetUser.balance || 0) < signal.allocation) {
+      alert('❌ Insufficient balance for signal allocation');
+      return;
+    }
     
     setPurchasedSignals((prev) =>
       prev.map((sig) => {
@@ -1271,7 +1277,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       return;
     }
     
-    // Update bot allocation
+    // Update bot allocation (does NOT deduct balance - that happens at activation)
     setPurchasedBots((prev) =>
       prev.map((bot) =>
         bot.id === botPurchaseId
@@ -1280,20 +1286,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       )
     );
     
-    // Deduct from account balance
-    setAccount((prev) => ({
-      ...prev,
-      balance: prev.balance - amount
-    }));
-    
-    // Also update user's balance in allUsers (IMPORTANT FIX)
-    const newBal = (user.balance || 0) - amount;
-    setUser({ ...user, balance: newBal });
-    setAllUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, balance: newBal } : u))
-    );
-    
-    alert(`✅ Allocated $${amount.toFixed(2)} to bot. New balance: $${newBal.toFixed(2)}`);
+    alert(`✅ Allocated $${amount.toFixed(2)} to bot. This will be deducted when admin activates.`);
   };
 
   const terminateBot = (botPurchaseId: string) => {

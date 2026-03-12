@@ -938,16 +938,17 @@ export function AdminPage() {
           <div className="space-y-3">
             {purchasedBots.filter(b => b.status === 'ACTIVE').map((bot) => {
               const user = allUsers.find(u => u.id === bot.userId);
-              const runningTime = Date.now() - bot.approvedAt!;
+              const runningTime = Date.now() - (bot.startedAt || bot.approvedAt || Date.now());
               const days = Math.floor(runningTime / (1000 * 60 * 60 * 24));
               const hours = Math.floor((runningTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              const minutes = Math.floor((runningTime % (1000 * 60 * 60)) / (1000 * 60));
               return (
                 <div key={bot.id} className="flex items-center justify-between p-4 bg-[#0d1117] rounded-lg">
                   <div className="flex-1">
                     <p className="text-white font-medium">{bot.botName}</p>
                     <p className="text-xs text-[#8b949e]">User: {user?.email}</p>
                     <p className="text-xs text-[#8b949e]">Allocated: ${bot.allocatedAmount.toFixed(2)} | Earned: ${bot.totalEarned.toFixed(2)}</p>
-                    <p className="text-xs text-[#26a69a] mt-1">Running: {days}d {hours}h</p>
+                    <p className="text-xs text-[#26a69a] mt-1">Running: {days}d {hours}h {minutes}m</p>
                   </div>
                   <button
                     onClick={() => terminateBot(bot.id)}
@@ -971,16 +972,17 @@ export function AdminPage() {
           <div className="space-y-3">
             {purchasedSignals.filter(s => s.status === 'ACTIVE').map((signal) => {
               const user = allUsers.find(u => u.id === signal.userId);
-              const runningTime = Date.now() - signal.approvedAt!;
+              const runningTime = Date.now() - (signal.startedAt || signal.approvedAt || Date.now());
               const days = Math.floor(runningTime / (1000 * 60 * 60 * 24));
               const hours = Math.floor((runningTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              const minutes = Math.floor((runningTime % (1000 * 60 * 60)) / (1000 * 60));
               return (
                 <div key={signal.id} className="flex items-center justify-between p-4 bg-[#0d1117] rounded-lg">
                   <div className="flex-1">
                     <p className="text-white font-medium">{signal.providerName}</p>
                     <p className="text-xs text-[#8b949e]">User: {user?.email}</p>
                     <p className="text-xs text-[#8b949e]">Win Rate: {signal.winRate}% | Trades Followed: {signal.tradesFollowed}</p>
-                    <p className="text-xs text-[#26a69a] mt-1">Earnings: ${signal.earnings.toFixed(2)} | Running: {days}d {hours}h</p>
+                    <p className="text-xs text-[#26a69a] mt-1">Earnings: ${signal.earnings.toFixed(2)} | Running: {days}d {hours}h {minutes}m</p>
                   </div>
                   <button
                     onClick={() => terminateSignal(signal.id)}
